@@ -1,10 +1,16 @@
 import NavAdmin from "@/components/NavAdmin";
 import TabelProduk from "@/components/TabelProduk";
 import Tombol from "@/components/Tombol";
-import { produkContoh } from "@/lib/data-contoh";
+import { createAdminClient } from "@/lib/supabase/server";
 
-export default function HalamanAdmin() {
-  const daftarProduk = produkContoh;
+export const dynamic = "force-dynamic";
+
+export default async function HalamanAdmin() {
+  const supabase = await createAdminClient();
+  const { data: daftarProduk, error } = await supabase
+    .from("produk")
+    .select("*")
+    .order("created_at", { ascending: true });
 
   return (
     <div className="flex flex-col gap-6 py-8">
@@ -14,7 +20,14 @@ export default function HalamanAdmin() {
         {/* US-08 (bonus): tambah produk */}
         <Tombol href="/admin/produk/baru">Tambah produk</Tombol>
       </div>
-      <TabelProduk daftarProduk={daftarProduk} />
+      {error ? (
+        <div className="rounded-xl border border-garis bg-permukaan p-6 text-center">
+          <p className="font-semibold text-bahaya">Gagal memuat produk</p>
+          <p className="mt-1 text-sm text-teks-lembut">{error.message}</p>
+        </div>
+      ) : (
+        <TabelProduk daftarProduk={daftarProduk || []} />
+      )}
     </div>
   );
 }
