@@ -1,10 +1,14 @@
-import KartuProduk from "@/components/KartuProduk";
+import KatalogFilter from "@/components/KatalogFilter";
 import { toko } from "@/lib/toko";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function HalamanKatalog() {
+export default async function HalamanKatalog({ searchParams }) {
+  const params = await searchParams;
+  const initialKategori = params?.kategori || "";
+  const initialCari = params?.cari || "";
+
   let daftarProduk = [];
   let pesanError = null;
 
@@ -49,11 +53,11 @@ export default async function HalamanKatalog() {
             Belum ada produk
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {daftarProduk.map((produk) => (
-              <KartuProduk key={produk.id} produk={produk} />
-            ))}
-          </div>
+          <KatalogFilter
+            daftarProduk={daftarProduk}
+            initialKategori={initialKategori}
+            initialCari={initialCari}
+          />
         )}
       </section>
     </>
