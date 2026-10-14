@@ -197,4 +197,73 @@ export async function hapusProduk(formData) {
   revalidatePath("/admin");
 }
 
+export async function buatDeskripsiAI({ nama, kategori }) {
+  const supabase = await createAdminClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Anda harus login sebagai admin untuk menggunakan fitur AI." };
+  }
+
+  if (!nama || !nama.trim()) {
+    return { error: "Nama produk wajib diisi untuk membuat deskripsi AI." };
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return {
+      error:
+        "GEMINI_API_KEY belum diatur di file .env.local. Dapatkan API key gratis dari Google AI Studio (https://aistudio.google.com/) dan tambahkan ke .env.local.",
+    };
+  }
+
+  const prompt = `Tugas: Buat satu deskripsi produk UMKM yang singkat dan menarik.
+Nama Produk: ${nama}
+Kategori: ${kategori || "Umum"}
+
+Aturan yang WAJIB diikuti:
+- Panjang maksimal 2-3 kalimat (sekitar 30-50 kata).
+- Bahasa Indonesia yang ramah dan menggugah minat pembeli.
+- HANYA tulis teks deskripsinya saja — tanpa nomor, tanpa judul, tanpa tanda kutip, tanpa pilihan, tanpa kata pengantar seperti "Berikut" atau "Tentu", dan tanpa kalimat penutup.`;
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        error:
+          data?.error?.message ||
+          "Gagal memanggil Gemini API. Periksa apakah GEMINI_API_KEY Anda valid.",
+      };
+    }
+
+    const teks = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!teks) {
+      return { error: "Tidak ada respons deskripsi dari AI." };
+    }
+
+    return { success: true, deskripsi: teks.trim() };
+  } catch (err) {
+    return { error: err.message || "Terjadi kesalahan saat menghubungi Gemini API." };
+  }
+}
+
 export const gantiPasswordAdmin = gantiPassword;
