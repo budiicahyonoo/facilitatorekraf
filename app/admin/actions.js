@@ -117,4 +117,57 @@ export async function tambahProduk(prevState, formData) {
   redirect("/admin");
 }
 
+export async function ubahProduk(prevState, formData) {
+  const data = formData instanceof FormData ? formData : prevState;
+  const id = data?.get("id");
+  const nama = data?.get("nama");
+  const hargaRaw = data?.get("harga");
+  const kategori = data?.get("kategori");
+  const foto_url = data?.get("foto_url");
+  const deskripsi = data?.get("deskripsi");
+
+  if (!id) {
+    return { error: "ID produk tidak valid." };
+  }
+
+  if (!nama || !hargaRaw) {
+    return { error: "Nama dan harga produk wajib diisi." };
+  }
+
+  const harga = parseInt(hargaRaw, 10);
+  if (isNaN(harga) || harga < 0) {
+    return { error: "Harga produk harus berupa angka dan tidak boleh negatif." };
+  }
+
+  const supabase = await createAdminClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Anda harus login sebagai admin untuk mengubah produk." };
+  }
+
+  const { error } = await supabase
+    .from("produk")
+    .update({
+      nama: String(nama).trim(),
+      harga,
+      kategori: kategori ? String(kategori).trim() : null,
+      foto_url: foto_url ? String(foto_url).trim() : null,
+      deskripsi: deskripsi ? String(deskripsi).trim() : null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message || "Gagal mengubah produk di database." };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath(`/produk/${id}`);
+  redirect("/admin");
+}
+
 export const gantiPasswordAdmin = gantiPassword;
