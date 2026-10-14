@@ -170,4 +170,31 @@ export async function ubahProduk(prevState, formData) {
   redirect("/admin");
 }
 
+export async function hapusProduk(formData) {
+  const id = formData?.get("id");
+
+  if (!id) {
+    return { error: "ID produk tidak valid." };
+  }
+
+  const supabase = await createAdminClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Anda harus login sebagai admin untuk menghapus produk." };
+  }
+
+  const { error } = await supabase.from("produk").delete().eq("id", id);
+
+  if (error) {
+    return { error: error.message || "Gagal menghapus produk dari database." };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
 export const gantiPasswordAdmin = gantiPassword;
