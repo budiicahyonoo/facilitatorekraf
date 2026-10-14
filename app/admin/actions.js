@@ -34,3 +34,42 @@ export async function keluarAdmin() {
   redirect("/admin/login");
 }
 
+export async function gantiPassword(prevState, formData) {
+  const data = formData instanceof FormData ? formData : prevState;
+  const passwordBaru = data?.get("password_baru");
+  const konfirmasiPassword = data?.get("konfirmasi_password");
+
+  if (!passwordBaru || !konfirmasiPassword) {
+    return { error: "Password baru dan konfirmasi password wajib diisi." };
+  }
+
+  if (String(passwordBaru).length < 8) {
+    return { error: "Password baru minimal 8 karakter." };
+  }
+
+  if (passwordBaru !== konfirmasiPassword) {
+    return { error: "Konfirmasi password harus sama dengan password baru." };
+  }
+
+  const supabase = await createAdminClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { error: "Anda harus login terlebih dahulu untuk mengganti password." };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: String(passwordBaru),
+  });
+
+  if (error) {
+    return { error: error.message || "Gagal mengganti password." };
+  }
+
+  return { success: true, pesan: "Password berhasil diganti." };
+}
+
+export const gantiPasswordAdmin = gantiPassword;
